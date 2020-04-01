@@ -62,16 +62,16 @@ class StuffNeo4j():
             rel = Relationship(node1, reltype, node2, **kwargs)
             self.graph_db.create(rel)
         else:
-            print "Could not insert relation (%s) - [%s] -> (%s)" % (           
-                node1, reltype, node2)
+            print( "Could not insert relation (%s) - [%s] -> (%s)" % (           
+                node1, reltype, node2) )
             
     def merge_rel(self, reltype, node1, node2, **kwargs):
         if node1 is not None and node2 is not None: 
             rel = Relationship(node1, reltype, node2, **kwargs)
             return self.graph_db.create_unique(rel)
         else:
-            print "Could not merge relation (%s) - [%s] -> (%s)" % (           
-                node1, reltype, node2)
+            print( "Could not merge relation (%s) - [%s] -> (%s)" % (           
+                node1, reltype, node2) )
     
     def create_wordnet_rel(self, synset1, synset2, ptype):
         """
@@ -134,12 +134,10 @@ class StuffNeo4j():
             ;r    Domain of synset - REGION
             ;u    Domain of synset - USAGE 
         """
-        node1 = self.graph_db.find_one(self.nodelabel, 
-                                       property_key="synset_id",
-                                       property_value=synset1)
-        node2 = self.graph_db.find_one(self.nodelabel, 
-                                       property_key="synset_id",
-                                       property_value=synset2)
+        mm = self.graph_db.nodes.match( self.nodelabel )
+        
+        node1 = mm.where('_.synset_id="%s" ' % (synset1) ).first()
+        node2 = mm.where('_.synset_id="%s" ' % (synset2) ).first() 
         if (node1 is not None) and (node2 is not None):
             rel = Relationship(node1, self.reltype, node2, pointer_symbol=ptype)
             return rel
@@ -149,4 +147,7 @@ class StuffNeo4j():
         
     def insert_bulk(self, objs):
         if len(objs) > 0:
-            self.graph_db.create(*objs)
+            tx = self.graph_db.begin()
+            for obj in objs:
+                tx.create(obj)
+            tx.commit()
