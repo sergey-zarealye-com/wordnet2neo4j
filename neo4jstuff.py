@@ -21,13 +21,13 @@ class StuffNeo4j():
         self.reltype = reltype
         
     def connect(self, uri, usr="neo4j", pwd="neo4j"):
-    """
-      Authentication using BOLT protocol.
-      Use `bolt://1.2.3.4:7687/` for _uri_
-    """
+        """
+        Authentication using BOLT protocol.
+        Use `bolt://1.2.3.4:7687/` for _uri_
+        """
         if not uri.endswith('/'):
             uri += '/'
-        self.graph_db = Graph(uri + "db/data", password=pwd)
+        self.graph_db = Graph(uri, password=pwd)
         
     def create_indexes(self):
         #If index is already created py2neo throws exception.
