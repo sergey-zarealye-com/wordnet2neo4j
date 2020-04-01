@@ -2,13 +2,16 @@
 """
 Created on Tue Aug  4 15:03:08 2015
 
-@author: sergey
+REQUIRED:
+* neo4j community server v4+
+* py2neo v4.3+
+
+@author: sergey, comcon1
 """
 
 from py2neo import Graph
 from py2neo import Node
 from py2neo import Relationship
-from py2neo import authenticate
         
 class StuffNeo4j():
     
@@ -18,10 +21,13 @@ class StuffNeo4j():
         self.reltype = reltype
         
     def connect(self, uri, usr="neo4j", pwd="neo4j"):
+    """
+      Authentication using BOLT protocol.
+      Use `bolt://1.2.3.4:7687/` for _uri_
+    """
         if not uri.endswith('/'):
             uri += '/'
-        authenticate(uri, usr, pwd)
-        self.graph_db = Graph(uri + "db/data")
+        self.graph_db = Graph(uri + "db/data", password=pwd)
         
     def create_indexes(self):
         #If index is already created py2neo throws exception.
