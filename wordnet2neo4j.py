@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Aug  4 15:03:08 2015
-@author: sergey
+@author: sergey, comcon1
 
 Example usage:
 
 NOUNS
--i rwn3/data.noun --neo4j http://127.0.0.1:7474 --nodelabel Ruswordnet --reltype Pointer --encoding cp1251 --limit 1000
+-i dict/data.noun --neo4j bolt://127.0.0.1:7687 --nodelabel Enwordnet --reltype Pointer --limit 1000
 
 VERBS
--i rwn3/data.verb --neo4j http://127.0.0.1:7474 --nodelabel Ruswordnet --reltype Pointer --encoding cp1251 --limit 1000
+-i dict/data.verb --neo4j bolt://127.0.0.1:7687 --nodelabel Enwordnet --reltype Pointer --limit 1000
 
 """
 
-import sys
 import argparse
-import re
+import re, sys
 
 from neo4jstuff import StuffNeo4j
 
@@ -24,7 +23,11 @@ def main(argv):
         "Parses WordNet database. Stores the results in neo4j dtabase/")   
     parser.add_argument(
         "--neo4j", required=True,
-        help="URI string for connection to neo4j database, e.g. 'http://127.0.0.1:7474'."
+        help="URI string for connection to neo4j database, e.g. 'bolt://127.0.0.1:7687'."
+    )
+    parser.add_argument(
+            "--password", required=False,
+            help="Password for neo4j user for connection to DB."
     )
     parser.add_argument(
         "-i", "--input", required=True,
@@ -39,7 +42,7 @@ def main(argv):
         help="Wordnet relation type."
     )
     parser.add_argument(
-        "--limit", default=sys.maxint, type=int,
+        "--limit", default=sys.maxsize, type=int,
         help="Maximum number of lines to process in input file, for debugging."
     )
     parser.add_argument(
@@ -49,13 +52,17 @@ def main(argv):
     
     args = parser.parse_args()    
     
-    #Инициализируем параметры
+    # Initialize params
     the = StuffNeo4j(args.nodelabel, args.reltype)
+    
+    # Connect to DB
+    if args.password is None:
+        the.connect(args.neo4j)    
+    else:
+        the.connect(args.neo4j, pwd=args.password)    
 
-    #Подключаем БД
-    the.connect(args.neo4j)    
 
-    entry_pattern = re.compile(ur"(\d{8,8}) \d\d (\w) \d\d (\w+) ", re.UNICODE)
+    entry_pattern = re.compile(r'(\d{8,8}) \d\d (\w) \d\d (\w+) ')
     dictionary = []
     cnt = 0
     pos = None
@@ -77,7 +84,7 @@ def main(argv):
             cnt += 1           
             if cnt % 100 == 0:
                 the.insert_bulk(dictionary)
-                print "%d/%d words inserted" % (len(dictionary), cnt)
+                print( "%d/%d words inserted" % (len(dictionary), cnt) )
                 dictionary = []
             if cnt > args.limit:
                 break
@@ -85,7 +92,7 @@ def main(argv):
     the.create_indexes()
     
     #TODO we only add relations to existing nodes!
-    pointer_pattern = re.compile("([@!;~i#msp%=+-cru<\^>*]{1,2} \d{8,8} \w)")
+    pointer_pattern = re.compile(r'([@!;~i#msp%=+-cru<\^>*]{1,2} \d{8,8} \w)')
     cnt = 0
     relations = []
     with open(args.input) as wordnet:
@@ -108,7 +115,8 @@ def main(argv):
                         cnt += 1
                         if cnt % 100 == 0:
                             the.insert_bulk(relations)
-                            print "%d/%d relations inserted" % (len(relations), cnt)
+                            print( "%d/%d relations inserted" % \
+                                    (len(relations), cnt) )
                             relations = []
             if cnt > args.limit:
                 break
